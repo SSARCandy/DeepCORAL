@@ -13,11 +13,8 @@ CUDA = True if torch.cuda.is_available() else False
 LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 5e-4
 MOMENTUM = 0.9
-BATCH_SIZE = [100, 28]
+BATCH_SIZE = [200, 56]
 EPOCHS = 10
-# BATCH_SIZE = [64, 64]
-
-test_size = 0
 
 
 source_loader = get_office31_dataloader(case='amazon', batch_size=BATCH_SIZE[0])
