@@ -9,7 +9,7 @@ layer activations in deep neural networks (Deep CORAL).
 
 My implementation result (Task Amazon -> Webcam):
 
-![](demo/result.jpg)
+![](demo/result.png)
 
 ## Requirement
 
