@@ -5,7 +5,8 @@ An PyTorch implementation of 'Deep CORAL: Correlation Alignment for Deep Domain 
 [中文介紹](https://ssarcandy.tw/2017/10/31/deep-coral/)
 
 My implementation result (Task Amazon -> Webcam):
-![](demo/result.png)
+
+![](demo/result.jpg)
 
 ## Requirement
 
