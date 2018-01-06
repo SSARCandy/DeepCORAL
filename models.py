@@ -5,52 +5,27 @@ from torch.autograd import Function, Variable
 CUDA = True if torch.cuda.is_available() else False
 
 
-def feature_covariance_mat(n, d):
-    ones_t = torch.ones(n).view(1, -1)
-    if CUDA:
-        ones_t = ones_t.cuda()
-
-    tmp = ones_t.matmul(d)
-    covariance_mat = (d.t().matmul(d) - (tmp.t().matmul(tmp) / n)) / (n - 1)
-    return covariance_mat
-
-
-def forbenius_norm(mat):
-    return (mat**2).sum()**0.5
-
-
 '''
 MODELS
 '''
 
 
-class CORAL(Function):
-    def forward(self, source, target):
-        d = source.shape[1]
-        ns, nt = source.shape[0], target.shape[0]
-        cs = feature_covariance_mat(ns, source)
-        ct = feature_covariance_mat(nt, target)
+def CORAL(source, target):
+    d = source.data.shape[1]
 
-        self.saved = (source, target, cs, ct, ns, nt, d)
+    # source covariance
+    xm = torch.mean(source, 1, keepdim=True) - source
+    xc = torch.matmul(torch.transpose(xm, 0, 1), xm)
 
-        res = forbenius_norm(cs - ct)**2/(4*d*d)
-        res = torch.FloatTensor([res])
+    # target covariance
+    xmt = torch.mean(target, 1, keepdim=True) - target
+    xct = torch.matmul(torch.transpose(xmt, 0, 1), xmt)
 
-        return res if CUDA is False else res.cuda()
+    # frobenius norm between source and target
+    loss = torch.mean(torch.mul((xc - xct), (xc - xct)))
+    loss = loss/(4*d*4)
 
-    def backward(self, grad_output):
-        source, target, cs, ct, ns, nt, d = self.saved
-        ones_s_t = torch.ones(ns).view(1, -1)
-        ones_t_t = torch.ones(nt).view(1, -1)
-        if CUDA:
-            ones_s_t = ones_s_t.cuda()
-            ones_t_t = ones_t_t.cuda()
-
-        s_gradient = (source.t() - (ones_s_t.matmul(source).t().matmul(ones_s_t)/ns)).t().matmul(cs - ct) / (d*d*(ns - 1))
-        t_gradient = (target.t() - (ones_t_t.matmul(target).t().matmul(ones_t_t)/nt)).t().matmul(cs - ct) / (d*d*(nt - 1))
-        t_gradient = -t_gradient
-
-        return s_gradient*grad_output, t_gradient*grad_output
+    return loss
 
 
 class DeepCORAL(nn.Module):

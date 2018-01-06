@@ -14,7 +14,7 @@ LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 5e-4
 MOMENTUM = 0.9
 BATCH_SIZE = [200, 56]
-EPOCHS = 10
+EPOCHS = 20
 
 
 source_loader = get_office31_dataloader(case='amazon', batch_size=BATCH_SIZE[0])
@@ -45,8 +45,7 @@ def train(model, optimizer, epoch, _lambda):
         out1, out2 = model(source_data, target_data)
 
         classification_loss = torch.nn.functional.cross_entropy(out1, source_label)
-        coral = models.CORAL()
-        coral_loss = coral(out1, out2)
+        coral_loss = models.CORAL(out1, out2)
 
         sum_loss = _lambda*coral_loss + classification_loss
         sum_loss.backward()
