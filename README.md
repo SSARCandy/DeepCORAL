@@ -21,21 +21,3 @@ My implementation result (Task Amazon -> Webcam):
 1. Unzip dataset in `dataset/office31.tar.gz`
 2. Run `python3 main.py`
 
-## Unit Test
-
-The unit test is for sanity test only (to check my math is not going wrong),
-please run it under CPU version of PyTorch.
-
-```bash
-$ cd ..
-$ python -m DeepCORAL.tests.test -v
-test_CORAL_backward (__main__.TestCORAL) ... ok
-test_CORAL_forward (__main__.TestCORAL) ... ok
-test_feature_covariance_mat (__main__.TestCORAL) ... ok
-test_forbenius_norm (__main__.TestCORAL) ... ok
-
-----------------------------------------------------------------------
-Ran 4 tests in 0.033s
-
-OK
-```
