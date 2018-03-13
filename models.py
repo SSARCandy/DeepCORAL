@@ -23,7 +23,7 @@ def CORAL(source, target):
 
     # frobenius norm between source and target
     loss = torch.mean(torch.mul((xc - xct), (xc - xct)))
-    loss = loss/(4*d*4)
+    loss = loss/(4*d*d)
 
     return loss
 
