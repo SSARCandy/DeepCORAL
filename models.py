@@ -23,7 +23,7 @@ def CORAL(source, target):
 
     # frobenius norm between source and target
     loss = torch.mean(torch.mul((xc - xct), (xc - xct)))
-    loss = loss/(4*d*4)
+    loss = loss/(4*d*d)
 
     return loss
 
@@ -32,19 +32,17 @@ class DeepCORAL(nn.Module):
     def __init__(self, num_classes=1000):
         super(DeepCORAL, self).__init__()
         self.sharedNet = AlexNet()
-        self.source_fc = nn.Linear(4096, num_classes)
-        self.target_fc = nn.Linear(4096, num_classes)
+        self.fc = nn.Linear(4096, num_classes)
 
         # initialize according to CORAL paper experiment
-        self.source_fc.weight.data.normal_(0, 0.005)
-        self.target_fc.weight.data.normal_(0, 0.005)
+        self.fc.weight.data.normal_(0, 0.005)
 
     def forward(self, source, target):
         source = self.sharedNet(source)
-        source = self.source_fc(source)
+        source = self.fc(source)
 
         target = self.sharedNet(target)
-        target = self.source_fc(target)
+        target = self.fc(target)
         return source, target
 
 

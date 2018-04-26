@@ -22,8 +22,6 @@ target_loader = get_office31_dataloader(case='webcam', batch_size=BATCH_SIZE[1])
 
 
 def train(model, optimizer, epoch, _lambda):
-    model.train()
-
     result = []
 
     # Expected size : xs -> (batch_size, 3, 300, 300), ys -> (batch_size)
@@ -76,7 +74,7 @@ def train(model, optimizer, epoch, _lambda):
     return result
 
 
-def test(model, dataset_loader, e, mode='source'):
+def test(model, dataset_loader, e):
     model.eval()
     test_loss = 0
     correct = 0
@@ -85,9 +83,7 @@ def test(model, dataset_loader, e, mode='source'):
             data, target = data.cuda(), target.cuda()
 
         data, target = Variable(data, volatile=True), Variable(target)
-        out1, out2 = model(data, data)
-
-        out = out1 if mode == 'source' else out2
+        out, _ = model(data, data)
 
         # sum up batch loss
         test_loss += torch.nn.functional.cross_entropy(out, target, size_average=False).data[0]
@@ -133,8 +129,7 @@ if __name__ == '__main__':
     # i.e. 10 times learning rate for the last two fc layers.
     optimizer = torch.optim.SGD([
         {'params': model.sharedNet.parameters()},
-        {'params': model.source_fc.parameters(), 'lr': 10*LEARNING_RATE},
-        {'params': model.target_fc.parameters(), 'lr': 10*LEARNING_RATE}
+        {'params': model.fc.parameters(), 'lr': 10*LEARNING_RATE},
     ], lr=LEARNING_RATE, momentum=MOMENTUM)
 
     if CUDA:
@@ -163,7 +158,7 @@ if __name__ == '__main__':
         training_statistic.append(res)
 
         test_source = test(model, source_loader, e)
-        test_target = test(model, target_loader, e, mode='target')
+        test_target = test(model, target_loader, e)
         testing_s_statistic.append(test_source)
         testing_t_statistic.append(test_target)
 
