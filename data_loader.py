@@ -16,7 +16,7 @@ def get_train_test_loader(directory, batch_size, testing_size=0.1, img_size=None
     ]
 
     if img_size is not None:
-        transform.insert(0, transforms.Scale(img_size))
+        transform.insert(0, transforms.Resize(img_size))
 
     dataset = datasets.ImageFolder(
         directory,
@@ -78,7 +78,7 @@ def get_office31_dataloader(case, batch_size):
     img_size = (227, 227)
 
     transform = [
-        transforms.Scale(img_size),
+        transforms.Resize(img_size),
         transforms.ToTensor(),
         transforms.Normalize(means['imagenet'], stds['imagenet']),
     ]

@@ -2,12 +2,10 @@ from __future__ import division
 import argparse
 import torch
 from torch.utils import model_zoo
-from torch.autograd import Variable
 
 import models
 import utils
 from data_loader import get_train_test_loader, get_office31_dataloader
-
 
 CUDA = True if torch.cuda.is_available() else False
 LEARNING_RATE = 1e-3
@@ -17,11 +15,10 @@ BATCH_SIZE = [200, 56]
 EPOCHS = 20
 
 
-source_loader = get_office31_dataloader(case='amazon', batch_size=BATCH_SIZE[0])
-target_loader = get_office31_dataloader(case='webcam', batch_size=BATCH_SIZE[1])
 
 
-def train(model, optimizer, epoch, _lambda):
+def train(model, optimizer, epoch, _lambda, source_loader, target_loader):
+    model.train()
     result = []
 
     # Expected size : xs -> (batch_size, 3, 300, 300), ys -> (batch_size)
@@ -36,8 +33,6 @@ def train(model, optimizer, epoch, _lambda):
             source_label = source_label.cuda()
             target_data = target_data.cuda()
 
-        source_data, source_label = Variable(source_data), Variable(source_label)
-        target_data = Variable(target_data)
 
         optimizer.zero_grad()
         out1, out2 = model(source_data, target_data)
@@ -55,9 +50,9 @@ def train(model, optimizer, epoch, _lambda):
             'step': batch_idx + 1,
             'total_steps': train_steps,
             'lambda': _lambda,
-            'coral_loss': coral_loss.data[0],
-            'classification_loss': classification_loss.data[0],
-            'total_loss': sum_loss.data[0]
+            'coral_loss': coral_loss.data.item(),
+            'classification_loss': classification_loss.data.item(),
+            'total_loss': sum_loss.data.item()
         })
 
         print('Train Epoch: {:2d} [{:2d}/{:2d}]\t'
@@ -66,33 +61,33 @@ def train(model, optimizer, epoch, _lambda):
                   batch_idx + 1,
                   train_steps,
                   _lambda,
-                  classification_loss.data[0],
-                  coral_loss.data[0],
-                  sum_loss.data[0]
+                  classification_loss.data.item(),
+                  coral_loss.data.item(),
+                  sum_loss.data.item()
               ))
 
     return result
 
 
 def test(model, dataset_loader, e):
-    model.eval()
-    test_loss = 0
-    correct = 0
-    for data, target in dataset_loader:
-        if CUDA:
-            data, target = data.cuda(), target.cuda()
+    with torch.no_grad():
+        model.eval()
+        test_loss = 0
+        correct = 0
+        for data, target in dataset_loader:
+            if CUDA:
+                data, target = data.cuda(), target.cuda()
 
-        data, target = Variable(data, volatile=True), Variable(target)
-        out, _ = model(data, data)
+            out, _ = model(data, data)
 
-        # sum up batch loss
-        test_loss += torch.nn.functional.cross_entropy(out, target, size_average=False).data[0]
+            # sum up batch loss
+            test_loss += torch.nn.functional.cross_entropy(out, target, reduce='sum').data.item()
 
-        # get the index of the max log-probability
-        pred = out.data.max(1, keepdim=True)[1]
-        correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+            # get the index of the max log-probability
+            pred = out.data.max(1, keepdim=True)[1]
+            correct += pred.eq(target.data.view_as(pred)).cpu().sum()
 
-    test_loss /= len(dataset_loader.dataset)
+        test_loss /= len(dataset_loader.dataset)
 
     return {
         'epoch': e,
@@ -122,6 +117,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--load', help='Resume from checkpoint file')
     args = parser.parse_args()
+    source_loader = get_office31_dataloader(
+        case='amazon', batch_size=BATCH_SIZE[0])
+    target_loader = get_office31_dataloader(
+        case='webcam', batch_size=BATCH_SIZE[1])
 
     model = models.DeepCORAL(31)
 
@@ -147,7 +146,8 @@ if __name__ == '__main__':
     for e in range(0, EPOCHS):
         _lambda = (e+1)/EPOCHS
         # _lambda = 0.0
-        res = train(model, optimizer, e+1, _lambda)
+        res = train(
+            model, optimizer, e+1, _lambda, source_loader, target_loader)
         print('###EPOCH {}: Class: {:.6f}, CORAL: {:.6f}, Total_Loss: {:.6f}'.format(
             e+1,
             sum(row['classification_loss'] / row['total_steps'] for row in res),
